@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_crontab',
     'django_db_logger',
+    'django_whitenoise',
     'hpdg',
 ]
 
@@ -85,18 +86,18 @@ WSGI_APPLICATION = 'hpdg_API.wsgi.application'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
 DATABASES = {
-    'default1': {
+    'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     },
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'projeth_db',
-        'USER': 'postgres',
-        'PASSWORD': 'real',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
+    # 'default1': {
+    #     'ENGINE': 'django.db.backends.postgresql',
+    #     'NAME': 'projeth_db',
+    #     'USER': 'postgres',
+    #     'PASSWORD': 'real',
+    #     'HOST': 'localhost',
+    #     'PORT': '5432',
+    # }
 }
 
 

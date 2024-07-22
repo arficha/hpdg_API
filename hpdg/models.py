@@ -10,6 +10,7 @@ class Token(models.Model):
     id = models.CharField(max_length=100,primary_key=True)
     email = models.CharField(max_length=100,null=False)
     password = models.CharField(max_length=100,null=False)
+    role = models.CharField(max_length=100,default='super')
     now=floor(datetime.datetime.now().timestamp())
     creation_date = models.IntegerField(default=now)
     
@@ -17,7 +18,7 @@ class Token(models.Model):
         ordering =["creation_date"]
 
     def __str__(self):
-        return self.id
+        return self.email
         
 # Create your models here.
 class Session(models.Model):
@@ -53,7 +54,7 @@ class Entite(models.Model):
         ordering =["creation_date"]
 
     def __str__(self):
-        return self.id
+        return self.nom
 
 # Create your models here.
 class Client(models.Model):
@@ -73,7 +74,7 @@ class Client(models.Model):
         ordering =["creation_date"]
 
     def __str__(self):
-        return self.id
+        return self.nom+ ' '+ self.prenom
     # create your models here.
 class Admin(models.Model):
     id = models.CharField(primary_key=True,unique=True,max_length=100)
@@ -89,7 +90,7 @@ class Admin(models.Model):
         ordering =["creation_date"]
 
     def __str__(self):
-        return self.id
+        return self.nom+ ' '+ self.prenom
      # create your models here.
 class Superadmin(models.Model):
     id = models.CharField(primary_key=True,unique=True,max_length=100)
@@ -103,11 +104,12 @@ class Superadmin(models.Model):
         ordering =["creation_date"]
 
     def __str__(self):
-        return self.id
+        return self.nom+ ' '+ self.prenom
       # create your models here.
 class Chambre(models.Model):
     id = models.CharField(primary_key=True,unique=True,max_length=100)
     capacite = models.IntegerField(default=0)
+    entite = models.ForeignKey(Entite,on_delete=models.DO_NOTHING,related_name='entite')
     nom = models.CharField(max_length=100)
     statut = models.CharField(max_length=200,default='1') # les differents statuts"créé(1), validé(2), effacé(5).
     prix = models.IntegerField(default=0)
@@ -118,11 +120,12 @@ class Chambre(models.Model):
         ordering =["creation_date"]
 
     def __str__(self):
-        return self.id
+        return self.nom +' ('+self.entite.nom +')'
      # create your models here.
 class Reservation(models.Model):
     id = models.CharField(primary_key=True,unique=True,max_length=100)
-    id_client = models.CharField(max_length=100)
+    client = models.ForeignKey(Client,on_delete=models.DO_NOTHING,related_name='client')
+    entite = models.ForeignKey(Entite,on_delete=models.DO_NOTHING,related_name='entite')
     date_debut = models.IntegerField(default=0)
     date_fin = models.IntegerField(default=0)
     statut = models.CharField(max_length= 200,default='1') # les differents statuts"créé(1), validé(2), effacé(5).
@@ -137,6 +140,7 @@ class Reservation(models.Model):
     def __str__(self):
         return self.id
        # create your models here.
+
 class Photo(models.Model):
     id = models.CharField(primary_key=True,unique=True,max_length=100)
     id_chambre = models.CharField(max_length=100)

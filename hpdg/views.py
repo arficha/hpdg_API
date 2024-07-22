@@ -78,27 +78,9 @@ def home_a(request):
 def home_sp(request):
     return render(request,template_name='home_sp.html')
 
-
-
 @csrf_exempt
 def downloadPage(request):
     return render(request,template_name='download_example.html')
-
-
-def generateUniqueUserCode(commune:str):
-    result=False
-    vows=['A','E','I','O','U','Y']
-    while result == False :
-        n = random.randint(0,len(vows)-1)
-        n_f = random.randint(100,999)
-        n_l = random.randint(0,99)
-        code = commune.capitalize()[0:2] + str(n_f) + vows[n] + str(n_l)
-        #print(code)
-        usedCodes = [x.code for x in User.objects.all()]
-        if not ( code in usedCodes ):
-            return code
-        
-
 
 #CRUD views for Token Model
 @csrf_exempt
@@ -188,7 +170,7 @@ def refreshToken(request):
                 if len(sessions)==0 or sessions[0].end_time < datetime.datetime.now().timestamp():
                     session = Session()
                     codefin = datetime.datetime.now().timestamp()
-                    session.id = str(uuid.uuid4()) + ":"+str(len(User.objects.filter(creation_date=codefin)))
+                    session.id = str(uuid.uuid4()) + ":"+str(codefin)
                     session.access = token_hex(100)
                     session.refresh = token_hex(100)
                     session.ip = ip
@@ -204,6 +186,7 @@ def refreshToken(request):
                 data["code"] = 0
                 data["access"] = session.access
                 data["refresh"] = session.refresh
+                data["role"] = usr.role
                 status = 200
             else:
                 data["error"] = True
@@ -389,8 +372,6 @@ def setPassword(request):
         logger.exception(data["description"])
     return JsonResponse(data, status=status)
 
-
-
 def verifyTokenIn(token,request):
     #print('verifying user : ' + token)
     ip = ''
@@ -409,7 +390,6 @@ def verifyTokenIn(token,request):
             return False
     else :
         return False 
-
 
 
 #CRUD views for Client Model
@@ -445,6 +425,7 @@ def createClient(request):
                     token.id=email
                     token.password = password
                     token.email = email
+                    token.role = 'client'
                     token.save() 
                     
                     session = Session()
@@ -598,7 +579,7 @@ def getClient(request):
         payload = json.dumps(request.GET.dict())
         payload = json.loads(payload)
         print(payload)
-        form = forms.getClient(payload)
+        form = forms.getObject(payload)
         if verifyTokenIn(token=token,request=request) and form.is_valid() :
             id = form.cleaned_data["id"]
             usr = Client.objects.get(id=id)
@@ -696,7 +677,7 @@ def getClientWithEmailandPwd(request):
         payload = json.dumps(request.GET.dict())
         payload = json.loads(payload)
         print(payload)
-        form = forms.getClientwithemail(payload)
+        form = forms.getUserwithemail(payload)
         if verifyTokenIn(token=token,request=request) and form.is_valid() :
             email = form.cleaned_data["email"]
             password = form.cleaned_data["password"]
@@ -757,7 +738,7 @@ def deleteClient(request):
         payload = json.dumps(request.GET.dict())
         payload = json.loads(payload)
         print(payload)
-        form = forms.getClient(payload)
+        form = forms.getObject(payload)
         if verifyTokenIn(token=token,request=request) and form.is_valid() :
             id = form.cleaned_data["id"]
             Client.objects.delete(id=id)
@@ -835,6 +816,13 @@ def createAdmin(request):
         token=request.META['HTTP_AUTHORIZATION']
         payload = json.loads(request.body)
         form = forms.InitAdmin(payload)
+        ip = ''
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+
         if verifyTokenIn(token=token,request=request) and form.is_valid():
             id = form.cleaned_data["id"]
             id_entite = form.cleaned_data["id_entite"]
@@ -848,6 +836,7 @@ def createAdmin(request):
                 token.id=email
                 token.password = password
                 token.email = email
+                token.role = 'admin'
                 token.save() 
                 
                 session = Session()
@@ -983,7 +972,7 @@ def getAdmin(request):
         payload = json.dumps(request.GET.dict())
         payload = json.loads(payload)
         print(payload)
-        form = forms.getAdmin(payload)
+        form = forms.getObject(payload)
         if verifyTokenIn(token=token,request=request) and form.is_valid() :
             usr = Admin.objects.get(id=id)
             data["error"] = False
@@ -1017,8 +1006,6 @@ def getAdmin(request):
         data['description'] = 'Unauthorized method'
         logger.exception(data["description"])
     return JsonResponse(data, status=status)
-
-
 
 @csrf_exempt
 def getAdminWithEmailandPwd(request):
@@ -1079,7 +1066,6 @@ def getAdminWithEmailandPwd(request):
         logger.exception(data["description"])
     return JsonResponse(data, status=status)
 
-
 @csrf_exempt
 def getAdmins(request):
     data = {
@@ -1122,89 +1108,6 @@ def getAdmins(request):
         logger.exception(data["description"])
     return JsonResponse(data, status=status)
 
-
-    data = {
-        "error": True,
-        "code": -4,
-    }
-    status = 400
-    if request.method == 'PUT' or request.method == 'POST':
-        token=request.META['HTTP_AUTHORIZATION']  
-        payload = json.loads(request.body)
-        form = forms.getPreAdminsFiltered(payload)
-        if verifyTokenIn(token=token,request=request) and form.is_valid() :
-            filter = form.cleaned_data["filter"]
-            name = form.cleaned_data["name"]
-            date_debut = form.cleaned_data["date_debut"]
-            date_fin = form.cleaned_data["date_fin"]
-            birth_debut = form.cleaned_data["birth_debut"]
-            birth_fin = form.cleaned_data["birth_fin"]
-            pres = Admin.objects.all()
-            if filter=='commune':
-                pres.filter(commune__contains=name)
-            elif filter=='departement':
-                pres.filter(departement__contains=name)
-            elif filter=='departement_org':
-                pres.filter(departement_org__contains=name)
-            elif filter=='region':
-                pres.filter(region__contains=name)
-            elif filter=='pays':
-                pres.filter(pays__contains=name)
-            elif filter=='periode':
-                pres.filter(creation_date__gte = date_debut-1).filter(creation_date__lte = date_fin+1)
-            elif filter=='age_periode':
-                pres.filter(creation_date__gte = birth_debut-1).filter(creation_date__lte = birth_fin+1)
-            elif filter=='_18_19s':
-                _18th=datetime.datetime.now()-datetime.timedelta(days=18*365-1)
-                _19th=datetime.datetime.now()-datetime.timedelta(days=20*365-1)
-                pres.filter(creation_date__gte = _19th).filter(creation_date__lte = _18th) 
-            elif filter=='name_18_19s':
-                _18th=datetime.datetime.now()-datetime.timedelta(days=18*365-1)
-                _19th=datetime.datetime.now()-datetime.timedelta(days=20*365-1)
-                pres.filter(creation_date__gte = _19th).filter(creation_date__lte = _18th).filter(nom__contains=name)
-            elif filter=='name_periode':
-                pres.filter(creation_date__gte = date_debut-1).filter(creation_date__lte = date_fin+1).filter(nom__contains=name)
-            elif filter=='name_age_periode':
-                pres.filter(creation_date__gte = date_debut-1).filter(creation_date__lte = date_fin+1).filter(nom__contains=name)
-            else:
-                pres.filter(nom__contains=name)
-            res = []
-            for usr in pres:
-                if usr.id!="":
-                    res.append({
-                            
-                           "id":usr.id,
-                           "id_entite":usr.id_entite,
-                            "nom" : usr.nom,
-                            "prenom" : usr.prenom,
-                            "email" : usr.email,
-                            "photo" : usr.photo,
-                            "creation_date" : usr.creation_date,
-                    })
-            data["error"] = False
-            data["code"] = 0
-            data["data"] = res
-            status = 200
-        elif not form.is_valid():
-                status = 400
-                data['code'] = -2
-                data['error'] = True
-                data['description'] = 'Bad datas given '+form.errors.as_text()
-                logger.exception(data["description"])
-        else:
-            status = 400
-            data['code'] = -3
-            data['error'] = True
-            data['description'] = 'Bad Authorization'
-            logger.exception(data["description"])
-    else:
-        status = 405
-        data['code'] = -4
-        data['error'] = True
-        data['description'] = 'Unauthorized method'
-        logger.exception(data["description"])
-    return JsonResponse(data, status=status)
-
 @csrf_exempt
 def deleteAdmin(request):
     data = {
@@ -1217,7 +1120,7 @@ def deleteAdmin(request):
         payload = json.dumps(request.GET.dict())
         payload = json.loads(payload)
         print(payload)
-        form = forms.getAdmin(payload)
+        form = forms.getObject(payload)
         if verifyTokenIn(token=token,request=request) and form.is_valid() :
             Admin.objects.delete(id=id)
             data["error"] = False
@@ -1278,76 +1181,6 @@ def deleteAdmin(request):
         data['code'] = -4
         data['error'] = True
         data['description'] = 'Unauthorized method PUT'
-        logger.exception(data["description"])
-    return JsonResponse(data, status=status)
-
-
-@csrf_exempt
-def updateUserPhoto(request):
-    data = {
-        "error": True,
-        "code": -4,
-    }
-    status = 400
-    if request.method == 'POST':
-        token=request.META['HTTP_AUTHORIZATION']
-        body={
-            'id':request.POST.get("id",''),
-        }
-        payload = json.dumps(body)
-        payload = json.loads(payload)
-        request_file = request.FILES['image'] if 'image' in request.FILES else None
-        form = forms.setUserphoto(payload)
-        if verifyTokenIn(token=token,request=request) and form.is_valid() and request_file:
-            fs = FileSystemStorage()
-            size = 300, 300
-            id = form.cleaned_data["id"]
-            newfilename= id + '_' + str(int(datetime.datetime.now().timestamp()))+'.jpg'
-            file = fs.save('images/big/'+newfilename, request_file)
-            img = Image.open(settings.MEDIA_ROOT+'/'+file)
-            img = img.resize(size, Image.Resampling.LANCZOS)
-            img.save(settings.MEDIA_ROOT+'/'+file)
-            fileurl = fs.url(file)
-            try:
-                usr = User.objects.get(id=id)
-                usr.photo = fileurl
-                usr.save() 
-                data["error"] = False
-                data["code"] = 0
-                data["data"] = {
-                            "id":usr.id,
-                            "nom" : usr.nom,
-                            "prenom" : usr.prenom,
-                            "email" : usr.email,
-                            "photo" : usr.photo,
-                            }
-                data['error']= False
-                status = 200
-                logger.info('User\'s photo updated successfully')
-            except Exception as e :
-                data["error"] = True
-                data["code"] = -1
-                data['description'] = 'Database Writing error occured :' + str(e)
-                status = 300
-                logger.exception(data["description"])
-        elif not form.is_valid():
-            status = 400
-            data['code'] = -2
-            data['error'] = True
-            data['description'] = 'Bad datas given '+form.errors.as_text()
-            logger.exception(data["description"])
-        else:
-            status = 400
-            data['code'] = -3
-            data['error'] = True
-            data['description'] = 'Bad Authorization'
-            logger.exception(data["description"])
-    
-    else:
-        status = 400
-        data['code'] = -4
-        data['error'] = True
-        data['description'] = 'Unauthorized method GET'
         logger.exception(data["description"])
     return JsonResponse(data, status=status)
 
@@ -1516,7 +1349,7 @@ def getSuperadmin(request):
         payload = json.dumps(request.GET.dict())
         payload = json.loads(payload)
         print(payload)
-        form = forms.getSuperadmin(payload)
+        form = forms.getObject(payload)
         if verifyTokenIn(token=token,request=request) and form.is_valid() :
             id = form.cleaned_data["id"]
             usr = Superadmin.objects.get(id=id)
@@ -1550,7 +1383,6 @@ def getSuperadmin(request):
         data['description'] = 'Unauthorized method PUT'
         logger.exception(data["description"])
     return JsonResponse(data, status=status)
-
 
 @csrf_exempt
 def getSuperadminWithEmailandPwd(request):
@@ -1608,7 +1440,6 @@ def getSuperadminWithEmailandPwd(request):
         logger.exception(data["description"])
     return JsonResponse(data, status=status)
 
-
 @csrf_exempt
 def getSuperadmins(request):
     data = {
@@ -1650,61 +1481,6 @@ def getSuperadmins(request):
     return JsonResponse(data, status=status)
 
 
-
-    data = {
-        "error": True,
-        "code": -4,
-    }
-    status = 400
-    if request.method == 'GET':
-        token=request.META['HTTP_AUTHORIZATION']  
-        payload = json.dumps(request.GET.dict())
-        payload = json.loads(payload)
-        print(payload)
-        form = forms.getSuperadminwithemail(payload)
-        if verifyTokenIn(token=token,request=request) and form.is_valid() :
-            email = form.cleaned_data["email"]
-            password = form.cleaned_data["password"]
-            try:
-                usr = Superadmin.objects.get(email=email)
-                data["error"] = False
-                data["code"] = 0
-                data["data"] = {
-                                "id":usr.id,
-                                "nom" : usr.nom,
-                                "prenom" : usr.prenom,
-                                "email" : usr.email,
-                             "creation_date" : usr.creation_date,
-                        }
-                status = 200
-            except Exception as e:
-                status = 300
-                data['code'] = -1
-                data['error'] = True
-                data['description'] = 'No matching account found '+ str(e)
-                print(str(e))
-                logger.exception(data["description"])
-
-        elif not form.is_valid():
-                status = 400
-                data['code'] = -2
-                data['error'] = True
-                data['description'] = 'Bad datas given '+form.errors.as_text()
-                logger.exception(data["description"])
-        else:
-            status = 400
-            data['code'] = -3
-            data['error'] = True
-            data['description'] = 'Bad Authorization'
-            logger.exception(data["description"])
-    else:
-        status = 405
-        data['code'] = -4
-        data['error'] = True
-        data['description'] = 'Unauthorized method PUT'
-        logger.exception(data["description"])
-    return JsonResponse(data, status=status)
-
 @csrf_exempt
 def deleteSuperadmin(request):
     data = {
@@ -1717,7 +1493,7 @@ def deleteSuperadmin(request):
         payload = json.dumps(request.GET.dict())
         payload = json.loads(payload)
         print(payload)
-        form = forms.getSuperadmin(payload)
+        form = forms.getObject(payload)
         if verifyTokenIn(token=token,request=request) and form.is_valid() :
             id = form.cleaned_data["id"]
             Superadmin.objects.delete(id=id)
@@ -1816,6 +1592,7 @@ def createEntite(request):
                     token.id=email
                     token.password = password
                     token.email = email
+                    token.role = 'entite'
                     token.save() 
                     
                     session = Session()
@@ -1965,7 +1742,7 @@ def getEntite(request):
         payload = json.dumps(request.GET.dict())
         payload = json.loads(payload)
         print(payload)
-        form = forms.getEntite(payload)
+        form = forms.getObject(payload)
         if verifyTokenIn(token=token,request=request) and form.is_valid() :
             id = form.cleaned_data["id"]
             usr = Entite.objects.get(id=id)
@@ -2003,7 +1780,6 @@ def getEntite(request):
         data['description'] = 'Unauthorized method PUT'
         logger.exception(data["description"])
     return JsonResponse(data, status=status)
-
 
 @csrf_exempt
 def getEntiteWithEmailandPwd(request):
@@ -2065,7 +1841,6 @@ def getEntiteWithEmailandPwd(request):
         logger.exception(data["description"])
     return JsonResponse(data, status=status)
 
-
 @csrf_exempt
 def getEntites(request):
     data = {
@@ -2110,67 +1885,6 @@ def getEntites(request):
         logger.exception(data["description"])
     return JsonResponse(data, status=status)
 
-
-@csrf_exempt
-def getEntiteWithEmailandPwd(request):
-    data = {
-        "error": True,
-        "code": -4,
-    }
-    status = 400
-    if request.method == 'GET':
-        token=request.META['HTTP_AUTHORIZATION']  
-        payload = json.dumps(request.GET.dict())
-        payload = json.loads(payload)
-        print(payload)
-        form = forms.getEntitewithemail(payload)
-        if verifyTokenIn(token=token,request=request) and form.is_valid() :
-            email = form.cleaned_data["email"]
-            password = form.cleaned_data["password"]
-            try:
-                usr = Entite.objects.get(email=email)
-                data["error"] = False
-                data["code"] = 0
-                data["data"] = {
-                                "id":usr.id,
-                                "nom" : usr.nom,
-                                "email" : usr.email,
-                                "photo" : usr.photo,
-                                "description" : usr.description,
-                                "adresse" : usr.adresse,
-                                "telephone" : usr.telephone,
-                                "statut" : usr.statut,
-                             "creation_date" : usr.creation_date,
-                        }
-                status = 200
-            except Exception as e:
-                status = 300
-                data['code'] = -1
-                data['error'] = True
-                data['description'] = 'No matching account found '+ str(e)
-                print(str(e))
-                logger.exception(data["description"])
-
-        elif not form.is_valid():
-                status = 400
-                data['code'] = -2
-                data['error'] = True
-                data['description'] = 'Bad datas given '+form.errors.as_text()
-                logger.exception(data["description"])
-        else:
-            status = 400
-            data['code'] = -3
-            data['error'] = True
-            data['description'] = 'Bad Authorization'
-            logger.exception(data["description"])
-    else:
-        status = 405
-        data['code'] = -4
-        data['error'] = True
-        data['description'] = 'Unauthorized method PUT'
-        logger.exception(data["description"])
-    return JsonResponse(data, status=status)
-
 @csrf_exempt
 def deleteEntite(request):
     data = {
@@ -2183,7 +1897,7 @@ def deleteEntite(request):
         payload = json.dumps(request.GET.dict())
         payload = json.loads(payload)
         print(payload)
-        form = forms.getEntite(payload)
+        form = forms.getObject(payload)
         if verifyTokenIn(token=token,request=request) and form.is_valid() :
             id = form.cleaned_data["id"]
             Entite.objects.delete(id=id)
@@ -2247,7 +1961,6 @@ def deleteEntites(request):
         data['description'] = 'Unauthorized method PUT'
         logger.exception(data["description"])
     return JsonResponse(data, status=status)
-
 
 
 #CRUD views for Chambre Model
@@ -2392,7 +2105,7 @@ def getChambre(request):
         payload = json.dumps(request.GET.dict())
         payload = json.loads(payload)
         print(payload)
-        form = forms.getEntite(payload)
+        form = forms.getObject(payload)
         if verifyTokenIn(token=token,request=request) and form.is_valid() :
             id = form.cleaned_data["id"]
             usr = Chambre.objects.get(id=id)
@@ -2405,7 +2118,7 @@ def getChambre(request):
                                 "capacite" : usr.capacite,
                                 "prix" : usr.prix,
                                 "statut" : usr.statut,
-                    "creation_date" : usr.creation_date,
+                                "creation_date" : usr.creation_date,
                     }
             status = 200
         elif not form.is_valid():
@@ -2469,7 +2182,54 @@ def getChambres(request):
         logger.exception(data["description"])
     return JsonResponse(data, status=status)
 
-
+@csrf_exempt
+def getChambresFromEntity(request):
+    data = {
+        "error": True,
+        "code": -4,
+    }
+    status = 400
+    if request.method == 'GET':
+        token=request.META['HTTP_AUTHORIZATION']
+        payload = json.dumps(request.GET.dict())
+        payload = json.loads(payload)
+        print(payload)
+        form = forms.getObject(payload)
+        if verifyTokenIn(token=token,request=request) and  form.is_valid() :
+            id = form.cleaned_data["id"]
+            pres = Chambre.objects.filter(entite=id).exclude(status='5')
+            now=floor(datetime.datetime.now().timestamp())
+            res = []
+            for usr in pres:
+                if usr.id!="":
+                    res.append({
+                                "id":usr.id,
+                                "nom" : usr.nom,
+                                "capacite" : usr.capacite,
+                                "availability" : usr.capacite - len(Reservation.objects.filter(items__contains=usr.id).filter(date_debut__gt=now) |
+                                                                    Reservation.objects.filter(items__contains=usr.id).filter(date_fin__lt=now)),
+                                "prix" : usr.prix,
+                                "statut" : usr.statut,
+                    "creation_date" : usr.creation_date,
+                    })
+            data["error"] = False
+            data["code"] = 0
+            data["data"] = res
+            status = 200
+            logger.info('inscriptions fetched successfully')
+        else:
+            status = 400
+            data['code'] = -3
+            data['error'] = True
+            data['description'] = 'Bad Authorization'
+            logger.exception(data["description"])
+    else:
+        status = 405
+        data['code'] = -4
+        data['error'] = True
+        data['description'] = 'Unauthorized method'
+        logger.exception(data["description"])
+    return JsonResponse(data, status=status)
 
 @csrf_exempt
 def deleteChambre(request):
@@ -2483,7 +2243,7 @@ def deleteChambre(request):
         payload = json.dumps(request.GET.dict())
         payload = json.loads(payload)
         print(payload)
-        form = forms.getEntite(payload)
+        form = forms.getObject(payload)
         if verifyTokenIn(token=token,request=request) and form.is_valid() :
             id = form.cleaned_data["id"]
             Chambre.objects.delete(id=id)
@@ -2571,6 +2331,7 @@ def createReservation(request):
             if form.is_valid() :
                 nom = form.cleaned_data["nom"]
                 id_client = form.cleaned_data["id_client"]
+                id_entite = form.cleaned_data["id_entite"]
                 prix = form.cleaned_data["prix"]
                 date_debut = form.cleaned_data["date_debut"]
                 date_fin = form.cleaned_data["date_fin"]
@@ -2583,24 +2344,25 @@ def createReservation(request):
                     print(floor(datetime.datetime.now().timestamp()))
                     codefin = datetime.datetime.now().timestamp()
                     usr.id = str(uuid.uuid4()) + ":"+str(len(Client.objects.filter(creation_date=codefin)))
-                    usr.id_client = id_client
+                    usr.entite = Entite.objects.get(id=id_entite)
                     usr.date_debut = date_debut
                     usr.date_fin = date_fin
                     usr.prix = prix
                     usr.items = items
+                    usr.client = Client.objects.get(email=id_client)
+
 
                     usr.save() 
                     data["error"] = False
                     data["code"] = 0
                     data["data"] = {
                                 "id":usr.id,
-                                "id_client":usr.id_client,
+                                "client": str(usr.client),
+                                "entite": str(usr.entite),
                                 "date_debut":usr.date_debut,
                                 "date_fin":usr.date_fin,
                                 "prix":usr.prix,
                                 "items":usr.items,
-
-
                                 }
                     status = 200
                     logger.info('New Client created successfully')
@@ -2707,7 +2469,7 @@ def getReservation(request):
         payload = json.dumps(request.GET.dict())
         payload = json.loads(payload)
         print(payload)
-        form = forms.getEntite(payload)
+        form = forms.getObject(payload)
         if verifyTokenIn(token=token,request=request) and form.is_valid() :
             id = form.cleaned_data["id"]
             usr = Reservation.objects.get(id=id)
@@ -2716,7 +2478,8 @@ def getReservation(request):
             data["code"] = 0
             data["data"] = {
                                 "id":usr.id,
-                                "id_client":usr.id_client,
+                                "id_client":usr.client.id,
+                                "clientName":str(usr.client),
                                 "date_debut":usr.date_debut,
                                 "date_fin":usr.date_fin,
                                 "prix":usr.prix,
@@ -2761,13 +2524,14 @@ def getReservations(request):
                 if usr.id!="":
                     res.append({
                                 "id":usr.id,
-                                "id_client":usr.id_client,
+                                "client": str(usr.client),
+                                "entite": str(usr.entite),
                                 "date_debut":usr.date_debut,
                                 "date_fin":usr.date_fin,
                                 "prix" : usr.prix,
                                 "items" : usr.items,
                                 "statut" : usr.statut,
-                    "creation_date" : usr.creation_date,
+                                "creation_date" : usr.creation_date,
                     })
             data["error"] = False
             data["code"] = 0
@@ -2788,7 +2552,54 @@ def getReservations(request):
         logger.exception(data["description"])
     return JsonResponse(data, status=status)
 
-
+@csrf_exempt
+def getReservationsFromEntity(request):
+    data = {
+        "error": True,
+        "code": -4,
+    }
+    status = 400
+    if request.method == 'GET':
+        token=request.META['HTTP_AUTHORIZATION']
+        payload = json.dumps(request.GET.dict())
+        payload = json.loads(payload)
+        print(payload)
+        form = forms.getObject(payload)
+        if verifyTokenIn(token=token,request=request) and form.is_valid() :
+            id = form.cleaned_data["id"]
+        if verifyTokenIn(token=token,request=request) :
+            pres = Reservation.objects.filter(entite = id)
+            res = []
+            for usr in pres:
+                if usr.id!="":
+                    res.append({
+                                "id":usr.id,
+                                "client": str(usr.client),
+                                "date_debut":usr.date_debut,
+                                "date_fin":usr.date_fin,
+                                "prix" : usr.prix,
+                                "items" : usr.items,
+                                "statut" : usr.statut,
+                                "creation_date" : usr.creation_date,
+                    })
+            data["error"] = False
+            data["code"] = 0
+            data["data"] = res
+            status = 200
+            logger.info('inscriptions fetched successfully')
+        else:
+            status = 400
+            data['code'] = -3
+            data['error'] = True
+            data['description'] = 'Bad Authorization'
+            logger.exception(data["description"])
+    else:
+        status = 405
+        data['code'] = -4
+        data['error'] = True
+        data['description'] = 'Unauthorized method'
+        logger.exception(data["description"])
+    return JsonResponse(data, status=status)
 
 @csrf_exempt
 def deleteReservation(request):
@@ -2802,7 +2613,7 @@ def deleteReservation(request):
         payload = json.dumps(request.GET.dict())
         payload = json.loads(payload)
         print(payload)
-        form = forms.getEntite(payload)
+        form = forms.getObject(payload)
         if verifyTokenIn(token=token,request=request) and form.is_valid() :
             id = form.cleaned_data["id"]
             Reservation.objects.delete(id=id)
