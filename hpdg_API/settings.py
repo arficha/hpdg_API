@@ -43,11 +43,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_crontab',
     'django_db_logger',
-    'django_whitenoise',
     'hpdg',
 ]
 
 MIDDLEWARE = [
+    "whitenoise.middleware.WhiteNoiseMiddleware", # Here
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -81,6 +81,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'hpdg_API.wsgi.application'
 
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
