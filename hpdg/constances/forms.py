@@ -70,7 +70,7 @@ class InitAdmin(forms.Form):
     prenom = forms.CharField(required=True)
     email = forms.CharField(required=True)
     password = forms.CharField(required=True)
-    photo = forms.CharField(required=True)
+    # photo = forms.CharField(required=True)
 
     def __init__(self, *args, **kwargs):
         super(InitAdmin, self).__init__(*args, **kwargs)
@@ -93,7 +93,7 @@ class InitChambre(forms.Form):
     id = forms.CharField(required=False)
     capacite = forms.CharField(required=True)
     nom = forms.CharField(required=True)
-    photo = forms.CharField(required=True)
+    entite = forms.CharField(required=True)
     prix = forms.IntegerField(required=True)
 
     def __init__(self, *args, **kwargs):
@@ -101,12 +101,26 @@ class InitChambre(forms.Form):
 
     def clean(self):
         return self.cleaned_data
+
+
+class checkAvailability(forms.Form):
+    date_debut = forms.IntegerField(required=True)
+    chambre = forms.CharField(required=True)
+
+    def __init__(self, *args, **kwargs):
+        super(checkAvailability, self).__init__(*args, **kwargs)
+
+    def clean(self):
+        return self.cleaned_data
+
+
 class InitReservation(forms.Form):
     id = forms.CharField(required=False)
     id_client= forms.CharField(required=True)
     date_debut = forms.IntegerField(required=True)
     date_fin = forms.IntegerField(required=True)
     prix = forms.IntegerField(required=True)
+    nbre_personnes = forms.IntegerField(required=True)
     items = forms.CharField(required=True)
 
     def __init__(self, *args, **kwargs):
@@ -114,6 +128,28 @@ class InitReservation(forms.Form):
 
     def clean(self):
         return self.cleaned_data
+
+class InitReservationNoAccount(forms.Form):
+    id_entite= forms.CharField(required=True)
+    pays_client= forms.CharField(required=True)
+    nom_client= forms.CharField(required=True)
+    prenom_client= forms.CharField(required=True)
+    telephone_client= forms.CharField(required=True)
+    email_client= forms.CharField(required=True)
+    id_entite= forms.CharField(required=True)
+    date_debut = forms.IntegerField(required=True)
+    date_fin = forms.IntegerField(required=True)
+    prix = forms.IntegerField(required=True)
+    nbre_personnes = forms.IntegerField(required=True)
+    chambre = forms.CharField(required=True)
+
+    def __init__(self, *args, **kwargs):
+        super(InitReservationNoAccount, self).__init__(*args, **kwargs)
+
+    def clean(self):
+        return self.cleaned_data
+    
+
 class InitEntite(forms.Form):
     id = forms.CharField(required=False)
     nom = forms.CharField(required=True)

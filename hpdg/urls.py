@@ -19,7 +19,7 @@ urlpatterns = [
    #  path("home_sp", views.home_sp, name="home_sp"),
    #  path("chat/<str:chat_box_name>/", views.chat_box, name="chat"),
    #  path("download", views.downloadPage, name="Download"),
-   #  path("uploadimage", views.upload_image, name="upload-image"),
+    path("uploadimage", views.upload_image, name="upload-image"),
     
     
     path("user/token/add", views.createToken, name="create-user-token"),
@@ -32,6 +32,7 @@ urlpatterns = [
     path("client/set", views.updateClient, name="set-client"),
     #path("client/setpassword", views.updateUserPassword, name="set-clientpassword"),
     path("client/get", views.getClient, name="get-client"),
+    path("clients/get", views.getClients, name="get-clients"),
     #path("client/verifyregistration", views.getClientInscriptionState, name="get-client-registration"),
     path("client/getwithemailandpwd", views.getClientWithEmailandPwd, name="get-clientwithemail"),
     path("client/delete", views.deleteClient, name="delete-client"),
@@ -42,6 +43,8 @@ urlpatterns = [
     path("admin/set", views.updateAdmin, name="set-admin"),
     #path("admin/setpassword", views.updateUserPassword, name="set-adminpassword"),
     path("admin/get", views.getAdmin, name="get-admin"),
+    path("admins/get", views.getAdmins, name="get-admin"),
+    path("entite/admins/get", views.getAdminsFromEntity, name="get-admins-entite"),
     #path("admin/verifyregistration", views.getadminInscriptionState, name="get-admin-registration"),
     path("admin/getwithemailandpwd", views.getAdminWithEmailandPwd, name="get-adminwithemail"),
     path("admin/delete", views.deleteAdmin, name="delete-admin"),
@@ -60,17 +63,20 @@ urlpatterns = [
     path("entite/set", views.updateEntite, name="set-entite"),
     #path("entite/setpassword", views.updateUserPassword, name="set-entitepassword"),
     path("entite/get", views.getEntite, name="get-entite"),
+    path("entites/get", views.getEntites, name="get-entites"),
     #path("entite/verifyregistration", views.getentiteInscriptionState, name="get-entite-registration"),
     path("entite/getwithemailandpwd", views.getEntiteWithEmailandPwd, name="get-entitewithemail"),
     path("entite/delete", views.deleteEntite, name="delete-entite"),
    # path("entites/delete", views.deleteentites, name="delete-entites"),
 
     path("reservation/add", views.createReservation, name="add-reservation"),
+    path("reservation/noaccount/add", views.createReservationNoAccount, name="add-reservation-no-account"),
     path("reservation/set", views.updateReservation, name="set-reservation"),
     path("reservation/get", views.getReservation, name="get-reservation"),
     path("reservations/get", views.getReservations, name="get-reservations"),
     path("entite/reservations/get", views.getReservationsFromEntity, name="get-reservations-entite"),
     path("reservation/delete", views.deleteReservation, name="delete-reservation"),
+    path("reservation/checkAvailability", views.check_chambre_availability, name="check-reservation-availability"),
    #  path("reservations/delete", views.deleteReservations, name="delete-reservations"),
 
     path("chambre/add", views.createChambre, name="add-chambre"),
@@ -80,6 +86,8 @@ urlpatterns = [
     path("entite/chambres/get", views.getChambresFromEntity, name="get-chambres-entite"),
     path("chambre/delete", views.deleteChambre, name="delete-chambre"),
    #  path("chambres/delete", views.deleteChambres, name="delete-reservations"),
+
+
 
    
 ]

@@ -32,51 +32,51 @@ def home(request):
     return render(request,template_name='index.html')
 
 
-@csrf_exempt
-def admin(request):
-    return render(request,template_name='admin.html')
+# @csrf_exempt
+# def admin(request):
+#     return render(request,template_name='admin.html')
 
 
-@csrf_exempt
-def inscription_c(request):
-    return render(request,template_name='incrisption_c.html')
+# @csrf_exempt
+# def inscription_c(request):
+#     return render(request,template_name='incrisption_c.html')
 
-@csrf_exempt
-def connexion_c(request):
-    return render(request,template_name='connexion_c.html')
+# @csrf_exempt
+# def connexion_c(request):
+#     return render(request,template_name='connexion_c.html')
 
-@csrf_exempt
-def consulter_dispo(request):
-    return render(request,template_name='consulter_dispo.html')
+# @csrf_exempt
+# def consulter_dispo(request):
+#     return render(request,template_name='consulter_dispo.html')
 
-@csrf_exempt
-def effectuer_reservation(request):
-    return render(request,template_name='effectuer_reservation.html')
+# @csrf_exempt
+# def effectuer_reservation(request):
+#     return render(request,template_name='effectuer_reservation.html')
 
 
-@csrf_exempt
-def connexion_a(request):
-    return render(request,template_name='connexion_a.html')
+# @csrf_exempt
+# def connexion_a(request):
+#     return render(request,template_name='connexion_a.html')
 
-@csrf_exempt
-def inscription_a(request):
-    return render(request,template_name='inscription_a.html')
+# @csrf_exempt
+# def inscription_a(request):
+#     return render(request,template_name='inscription_a.html')
 
-@csrf_exempt
-def profil_a(request):
-    return render(request,template_name='profil_a.html')
+# @csrf_exempt
+# def profil_a(request):
+#     return render(request,template_name='profil_a.html')
 
-@csrf_exempt
-def profil_c(request):
-    return render(request,template_name='profil_c.html')
+# @csrf_exempt
+# def profil_c(request):
+#     return render(request,template_name='profil_c.html')
 
-@csrf_exempt
-def home_a(request):
-    return render(request,template_name='home_a.html')
+# @csrf_exempt
+# def home_a(request):
+#     return render(request,template_name='home_a.html')
 
-@csrf_exempt
-def home_sp(request):
-    return render(request,template_name='home_sp.html')
+# @csrf_exempt
+# def home_sp(request):
+#     return render(request,template_name='home_sp.html')
 
 @csrf_exempt
 def downloadPage(request):
@@ -630,6 +630,7 @@ def getClients(request):
         token=request.META['HTTP_AUTHORIZATION']
         if verifyTokenIn(token=token,request=request) :
             pres = Client.objects.all()
+            now=floor(datetime.datetime.now().timestamp())
             res = []
             for usr in pres:
                 if usr.id!="":
@@ -641,6 +642,8 @@ def getClients(request):
                                 "photo" : usr.photo,
                                 "sexe" : usr.sexe,
                                 "cni" : usr.cni,
+                                "reservations" : len(Reservation.objects.filter(client = usr.id)),
+                                "reservating" : len(Reservation.objects.filter(client = usr.id).exclude(status='5').filter(date_end__lt=now)),
                                 "telephone" : usr.telephone,
                                 "statut" : usr.statut,
                     "creation_date" : usr.creation_date,
@@ -828,7 +831,7 @@ def createAdmin(request):
             id_entite = form.cleaned_data["id_entite"]
             nom = form.cleaned_data["nom"]
             prenom = form.cleaned_data["prenom"]
-            photo = form.cleaned_data["photo"]
+            # photo = form.cleaned_data["photo"]
             email = form.cleaned_data["email"]
             password = form.cleaned_data["password"]
             try:
@@ -859,7 +862,7 @@ def createAdmin(request):
                 usr.nom = nom
                 usr.prenom = prenom
                 usr.email = email
-                usr.photo=photo
+                # usr.photo=photo
                 usr.save() 
                 data["error"] = False
                 data["code"] = 0
@@ -974,6 +977,7 @@ def getAdmin(request):
         print(payload)
         form = forms.getObject(payload)
         if verifyTokenIn(token=token,request=request) and form.is_valid() :
+            id = form.cleaned_data["id"]
             usr = Admin.objects.get(id=id)
             data["error"] = False
             data["code"] = 0
@@ -1083,6 +1087,54 @@ def getAdmins(request):
                     res.append({
                               "id":usr.id,
                               "id_entite":usr.id_entite,
+                              "nom" : usr.nom,
+                              "prenom" : usr.prenom,
+                              "email" : usr.email,
+                              "photo" : usr.photo,
+                              "creation_date" : usr.creation_date,
+                    })
+            data["error"] = False
+            data["code"] = 0
+            data["data"] = res
+            status = 200
+            logger.info('Admins fetched successfully')
+        else:
+            status = 400
+            data['code'] = -3
+            data['error'] = True
+            data['description'] = 'Bad Authorization'
+            logger.exception(data["description"])
+    else:
+        status = 405
+        data['code'] = -4
+        data['error'] = True
+        data['description'] = 'Unauthorized method'
+        logger.exception(data["description"])
+    return JsonResponse(data, status=status)
+
+@csrf_exempt
+def getAdminsFromEntity(request):
+    data = {
+        "error": True,
+        "code": -4,
+    }
+    status = 400
+    if request.method == 'GET':
+        token=request.META['HTTP_AUTHORIZATION']
+        payload = json.dumps(request.GET.dict())
+        payload = json.loads(payload)
+        print(payload)
+        form = forms.getObject(payload)
+        if verifyTokenIn(token=token,request=request) :
+            id = form.cleaned_data["id"]
+            pres = Admin.objects.filter(id_entite=id)
+            res = []
+            for usr in pres:
+                if usr.id!="":
+                    res.append({
+                              "id":usr.id,
+                              "id_entite":usr.id_entite,
+                              "entite":str(Entite.objects.get(id=id)),
                               "nom" : usr.nom,
                               "prenom" : usr.prenom,
                               "email" : usr.email,
@@ -1972,13 +2024,6 @@ def createChambre(request):
     }
     status = 400
     if request.method == 'PUT' or request.method == 'POST':
-        
-        ip = ''
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0]
-        else:
-            ip = request.META.get('REMOTE_ADDR')
         try:
             payload = json.loads(request.body)
             form = forms.InitChambre(payload)
@@ -1986,15 +2031,18 @@ def createChambre(request):
                 nom = form.cleaned_data["nom"]
                 capacite = form.cleaned_data["capacite"]
                 prix = form.cleaned_data["prix"]
+                entite = form.cleaned_data["entite"]
                 try:
                     
                     usr = Chambre()
                     usr.id=id
                     print(floor(datetime.datetime.now().timestamp()))
                     codefin = datetime.datetime.now().timestamp()
-                    usr.id = str(uuid.uuid4()) + ":"+str(len(Client.objects.filter(creation_date=codefin)))
+                    usr.id = str(uuid.uuid4()) + ":"+str(len(Chambre.objects.filter(creation_date=codefin)))
                     usr.nom = nom
                     usr.capacite = capacite
+                    usr.prix = prix
+                    usr.entite = Entite.objects.get(id=entite)
                     usr.save() 
                     data["error"] = False
                     data["code"] = 0
@@ -2045,7 +2093,6 @@ def updateChambre(request):
         form = forms.InitChambre(payload)
         #print(token)
         if verifyTokenIn(token=token,request=request) and form.is_valid():
-
             nom = form.cleaned_data["nom"]
             capacite = form.cleaned_data["capacite"]
             prix = form.cleaned_data["prix"]
@@ -2062,7 +2109,7 @@ def updateChambre(request):
                                 "nom" : usr.nom,
                                 "capacite" : usr.capacite,
                                 "prix" : usr.prix,
-                            "creation_date" : usr.creation_date,
+                                "creation_date" : usr.creation_date,
                             }
                 data['error']= False
                 status = 200
@@ -2152,6 +2199,7 @@ def getChambres(request):
         token=request.META['HTTP_AUTHORIZATION']
         if verifyTokenIn(token=token,request=request) :
             pres = Chambre.objects.all()
+            now=floor(datetime.datetime.now().timestamp())
             res = []
             for usr in pres:
                 if usr.id!="":
@@ -2159,9 +2207,11 @@ def getChambres(request):
                                 "id":usr.id,
                                 "nom" : usr.nom,
                                 "capacite" : usr.capacite,
+                                "availability" : usr.capacite - len(Reservation.objects.filter(items__contains=usr.id).filter(date_debut__gt=now) |
+                                                                    Reservation.objects.filter(items__contains=usr.id).filter(date_fin__lt=now)),
                                 "prix" : usr.prix,
                                 "statut" : usr.statut,
-                    "creation_date" : usr.creation_date,
+                                "creation_date" : usr.creation_date,
                     })
             data["error"] = False
             data["code"] = 0
@@ -2230,6 +2280,49 @@ def getChambresFromEntity(request):
         data['description'] = 'Unauthorized method'
         logger.exception(data["description"])
     return JsonResponse(data, status=status)
+
+
+@csrf_exempt
+def check_chambre_availability(request):
+    data = {
+        "error": True,
+        "code": -4,
+    }
+    status = 400
+    if request.method == 'GET':
+        payload = json.dumps(request.GET.dict())
+        payload = json.loads(payload)
+        print(payload)
+        form = forms.checkAvailability(payload)
+        if form.is_valid() :
+            date_debut = form.cleaned_data["date_debut"]
+            chambre = form.cleaned_data["chambre"]
+
+            chambre = Chambre.objects.get(id=chambre)
+            available = chambre.capacite - len(Reservation.objects.filter(items__contains=chambre.id).filter(date_debut__gt=date_debut) |
+                                Reservation.objects.filter(items__contains=chambre.id).filter(date_fin__lt=date_debut))
+                                
+            data["error"] = False
+            data["code"] = 0
+            data["data"] = {
+                'available':available>0
+            }
+            status = 200
+            logger.info('inscriptions fetched successfully')
+        else:
+            status = 400
+            data['code'] = -2
+            data['error'] = True
+            data['description'] = 'Bad datas given '+form.errors.as_text()
+            logger.exception(data["description"])
+    else:
+        status = 405
+        data['code'] = -4
+        data['error'] = True
+        data['description'] = 'Unauthorized method'
+        logger.exception(data["description"])
+    return JsonResponse(data, status=status)
+
 
 @csrf_exempt
 def deleteChambre(request):
@@ -2318,18 +2411,10 @@ def createReservation(request):
     }
     status = 400
     if request.method == 'PUT' or request.method == 'POST':
-        
-        ip = ''
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0]
-        else:
-            ip = request.META.get('REMOTE_ADDR')
         try:
             payload = json.loads(request.body)
             form = forms.InitReservation(payload)
             if form.is_valid() :
-                nom = form.cleaned_data["nom"]
                 id_client = form.cleaned_data["id_client"]
                 id_entite = form.cleaned_data["id_entite"]
                 prix = form.cleaned_data["prix"]
@@ -2351,6 +2436,96 @@ def createReservation(request):
                     usr.items = items
                     usr.client = Client.objects.get(email=id_client)
 
+
+                    usr.save() 
+                    data["error"] = False
+                    data["code"] = 0
+                    data["data"] = {
+                                "id":usr.id,
+                                "client": str(usr.client),
+                                "entite": str(usr.entite),
+                                "date_debut":usr.date_debut,
+                                "date_fin":usr.date_fin,
+                                "prix":usr.prix,
+                                "items":usr.items,
+                                }
+                    status = 200
+                    logger.info('New Client created successfully')
+                except Exception as e :
+                    data["error"] = True
+                    data["code"] = -1
+                    data['description'] = 'Database Writing error occured :' + str(e)
+                    status = 302
+                    logger.exception(e)
+            elif not form.is_valid():
+                status = 400
+                data['code'] = -2
+                data['error'] = True
+                data['description'] = 'Bad datas given '+ form.errors.as_text()
+                logger.exception(data['description'])
+        except  Exception as e:
+            status = 500
+            data['code'] = -4
+            data['error'] = True
+            data['description'] = str(e)
+            logger.exception(e)
+    else:
+        status = 400
+        data['code'] = -4
+        data['error'] = True
+        data['description'] = 'Unauthorized method GET'
+        logger.exception(data['description'])
+    return JsonResponse(data, status=status)
+
+
+@csrf_exempt
+def createReservationNoAccount(request):
+    data = {
+        "error": True,
+        "code": -4,
+    }
+    status = 400
+    if request.method == 'PUT' or request.method == 'POST':
+        try:
+            payload = json.loads(request.body)
+            form = forms.InitReservationNoAccount(payload)
+            if form.is_valid() :
+                pays_client = form.cleaned_data["pays_client"]
+                nom_client = form.cleaned_data["nom_client"]
+                prenom_client = form.cleaned_data["prenom_client"]
+                telephone_client = form.cleaned_data["telephone_client"]
+                email_client = form.cleaned_data["email_client"]
+                id_entite = form.cleaned_data["id_entite"]
+                prix = form.cleaned_data["prix"]
+                nbre_personnes = form.cleaned_data["nbre_personnes"]
+                date_debut = form.cleaned_data["date_debut"]
+                date_fin = form.cleaned_data["date_fin"]
+                items = form.cleaned_data["chambre"]
+               
+                try:
+                    
+                    usr = Reservation()
+                    usr.id=id
+                    # print(floor(datetime.datetime.now().timestamp()))
+                    codefin = datetime.datetime.now().timestamp()
+                    usr.id = str(uuid.uuid4()) + ":"+str(len(Client.objects.filter(creation_date=codefin)))
+                    usr.entite = Entite.objects.get(id=id_entite)
+                    usr.date_debut = date_debut
+                    usr.date_fin = date_fin
+                    usr.prix = prix
+                    usr.nbre_personnes = nbre_personnes
+                    usr.items = items
+                    if(len(Client.objects.filter(email=email_client))==0):
+                        clt = Client()
+                        clt.id = str(uuid.uuid4())
+                        clt.nom = nom_client
+                        clt.prenom = prenom_client
+                        clt.email = email_client
+                        clt.pays = pays_client
+                        clt.telephone = telephone_client
+                        clt.save() 
+                        
+                    usr.client = Client.objects.get(email=email_client)
 
                     usr.save() 
                     data["error"] = False
@@ -2477,15 +2652,22 @@ def getReservation(request):
             data["error"] = False
             data["code"] = 0
             data["data"] = {
-                                "id":usr.id,
-                                "id_client":usr.client.id,
-                                "clientName":str(usr.client),
-                                "date_debut":usr.date_debut,
-                                "date_fin":usr.date_fin,
-                                "prix":usr.prix,
-                                "items":usr.items,
-                                "statut" : usr.statut,
-                    "creation_date" : usr.creation_date,
+
+                            "id":usr.id,
+                            "client": str(usr.client),
+                            "entite": str(usr.entite),
+                            "nomClient": str(usr.client.nom),
+                            "prenomClient": str(usr.client.prenom),
+                            "emailClient": str(usr.client.email),
+                            "telephoneClient": str(usr.client.telephone),
+                            "paysClient": str(usr.client.pays),
+                            "date_debut":usr.date_debut,
+                            "date_fin":usr.date_fin,
+                            "prix" : usr.prix,
+                            "nbre_personnes" : usr.nbre_personnes,
+                            "items" : usr.items,
+                            "statut" : usr.statut,
+                            "creation_date" : usr.creation_date,
                     }
             status = 200
         elif not form.is_valid():
@@ -2526,10 +2708,16 @@ def getReservations(request):
                                 "id":usr.id,
                                 "client": str(usr.client),
                                 "entite": str(usr.entite),
+                                "nomClient": str(usr.client.nom),
+                                "prenomClient": str(usr.client.prenom),
+                                "emailClient": str(usr.client.email),
+                                "telephoneClient": str(usr.client.telephone),
+                                "paysClient": str(usr.client.telephone),
                                 "date_debut":usr.date_debut,
                                 "date_fin":usr.date_fin,
                                 "prix" : usr.prix,
-                                "items" : usr.items,
+                                "nbre_personnes" : usr.nbre_personnes,
+                                "items" : Chambre.objects.get(id=usr.items).nom,
                                 "statut" : usr.statut,
                                 "creation_date" : usr.creation_date,
                     })

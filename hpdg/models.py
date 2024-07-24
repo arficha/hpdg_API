@@ -62,7 +62,8 @@ class Client(models.Model):
     nom = models.CharField(max_length=100,default='',null=False)
     prenom = models.CharField(max_length=100,default='')
     email = models.CharField(max_length=100,unique=True)
-    photo = models.CharField(max_length=200)
+    photo = models.CharField(max_length=200,default='')
+    pays = models.CharField(max_length=200,default='Cameroun')
     sexe = models.CharField(max_length=100)
     statut = models.CharField(max_length=200,default='1') # les differents statuts"créé(1), validé(2), effacé(5). 
     cni = models.CharField(max_length=200,default='')
@@ -109,7 +110,7 @@ class Superadmin(models.Model):
 class Chambre(models.Model):
     id = models.CharField(primary_key=True,unique=True,max_length=100)
     capacite = models.IntegerField(default=0)
-    entite = models.ForeignKey(Entite,on_delete=models.DO_NOTHING,related_name='entite')
+    entite = models.ForeignKey(Entite,on_delete=models.DO_NOTHING)
     nom = models.CharField(max_length=100)
     statut = models.CharField(max_length=200,default='1') # les differents statuts"créé(1), validé(2), effacé(5).
     prix = models.IntegerField(default=0)
@@ -124,12 +125,13 @@ class Chambre(models.Model):
      # create your models here.
 class Reservation(models.Model):
     id = models.CharField(primary_key=True,unique=True,max_length=100)
-    client = models.ForeignKey(Client,on_delete=models.DO_NOTHING,related_name='client')
-    entite = models.ForeignKey(Entite,on_delete=models.DO_NOTHING,related_name='entite')
+    client = models.ForeignKey(Client,on_delete=models.DO_NOTHING)
+    entite = models.ForeignKey(Entite,on_delete=models.DO_NOTHING)
     date_debut = models.IntegerField(default=0)
     date_fin = models.IntegerField(default=0)
     statut = models.CharField(max_length= 200,default='1') # les differents statuts"créé(1), validé(2), effacé(5).
     prix = models.IntegerField(default=0)
+    nbre_personnes = models.IntegerField(default=1)
     items = models.CharField(max_length=200)
     now=floor(datetime.datetime.now().timestamp())
     creation_date = models.IntegerField(default=now)
